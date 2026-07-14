@@ -125,7 +125,23 @@
     <p class="eyebrow">Live score</p>
     <h2>One agent. One number. Full history.</h2>
     <p style="max-width:620px">A trust score from 0 to 1000, built from five weighted signals. Pick an agent to pull its live card.</p>
-    <div class="demo" style="margin-top:24px">
+    <div id="livecard" style="margin-top:24px;background:linear-gradient(180deg,#0c150e,#0a0e0a);border:1px solid var(--acc2);border-radius:16px;padding:20px 24px">
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <span style="font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--acc)">◉ Live · api.repforagents.com</span>
+        <span id="live-status" style="font-family:var(--mono);font-size:12px;color:var(--dim)">fetching a real agent…</span>
+      </div>
+      <div id="live-body" style="display:none;margin-top:14px;align-items:center;gap:26px;flex-wrap:wrap">
+        <div style="display:flex;align-items:baseline;gap:10px">
+          <b id="live-score" style="font-family:var(--mono);font-size:44px;color:var(--acc);line-height:1"></b>
+          <span id="live-tier" style="font-family:var(--mono);font-size:13px;letter-spacing:.1em;text-transform:uppercase;color:var(--acc)"></span>
+        </div>
+        <div style="flex:1;min-width:240px">
+          <div id="live-name" style="font-family:var(--mono);font-size:13px;color:var(--ink);margin-bottom:4px"></div>
+          <div id="live-signals" style="font-family:var(--mono);font-size:12.5px;color:var(--mut);line-height:1.7"></div>
+        </div>
+      </div>
+    </div>
+    <div class="demo" style="margin-top:16px">
       <div class="agentpick" id="pick"></div>
       <div class="scoregrid">
         <div>
@@ -282,6 +298,26 @@ AGENTS.forEach((a,i)=>{
   pick.appendChild(b);
 });
 render(AGENTS[0]);
+
+// pull a REAL agent's live score from the API
+(function(){
+  fetch("https://api.repforagents.com/v1/score/tantra-authority").then(function(r){return r.json();}).then(function(d){
+    if(!d || d.score==null) throw new Error("no score");
+    document.getElementById("live-status").textContent = "verified " + new Date(d.verifiedAt).toUTCString().replace("GMT","UTC");
+    document.getElementById("live-score").textContent = d.score;
+    var t=d.tier||""; document.getElementById("live-tier").textContent = t;
+    document.getElementById("live-name").textContent = d.name + "  ·  " + d.agent;
+    var s=d.signals||{};
+    document.getElementById("live-signals").innerHTML =
+      "on-chain USDC (Base): <b style='color:var(--ink)'>" + (s.onchainUsdcBalance!=null?s.onchainUsdcBalance.toFixed(2):"—") + "</b>  ·  " +
+      "signed offers: <b style='color:var(--ink)'>" + (s.signedOffers||0) + "</b>  ·  " +
+      "catalog live: <b style='color:var(--ink)'>" + (s.catalogLive?"yes":"no") + "</b>  ·  " +
+      "active " + (s.activeSinceDays||0) + "d";
+    document.getElementById("live-body").style.display="flex";
+  }).catch(function(){
+    document.getElementById("live-status").textContent = "API warming up — try a refresh";
+  });
+})();
 </script>
 </body>
 </html>
