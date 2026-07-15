@@ -305,7 +305,7 @@ render(AGENTS[0]);
   Promise.all([
     fetch(API+"/v1").then(function(r){return r.ok?r.json():null;}).catch(function(){return null;}),
     fetch(API+"/v1/agents").then(function(r){return r.ok?r.json():null;}).catch(function(){return null;}),
-    fetch(API+"/v1/score/tantra-authority").then(function(r){return r.json();}).catch(function(){return null;})
+    fetch(API+"/v1/score/did:web:lawrencetheenergymaster.com").then(function(r){return r.json();}).catch(function(){return null;})
   ]).then(function(res){
     var svc=res[0], agents=res[1], score=res[2];
     if(!svc){ document.getElementById("live-status").textContent="API warming up — refresh in a moment"; return; }
@@ -315,8 +315,10 @@ render(AGENTS[0]);
       document.getElementById("live-score").textContent = score.score;
       document.getElementById("live-tier").textContent = score.tier||"";
       document.getElementById("live-name").textContent = (score.name||score.agent);
+      var last=(score.receipts&&score.receipts.length)?score.receipts[score.receipts.length-1]:null;
       document.getElementById("live-signals").innerHTML =
-        "verified settlements: <b style='color:var(--ink)'>"+(score.settled||0)+"</b>";
+        "on-chain verified settlements: <b style='color:var(--ink)'>"+(score.settled||0)+"</b>"+
+        (last?("  ·  last: <b style='color:var(--ink)'>$"+(last.amountUsd||0)+"</b> delivered ✓"):"");
     } else {
       document.getElementById("live-score").textContent = "—";
       document.getElementById("live-score").style.fontSize = "26px";
