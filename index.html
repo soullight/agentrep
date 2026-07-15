@@ -299,23 +299,35 @@ AGENTS.forEach((a,i)=>{
 });
 render(AGENTS[0]);
 
-// pull a REAL agent's live score from the API
+// live status from the API — receipt-anchored, so it shows real scores as real sales settle
 (function(){
-  fetch("https://api.repforagents.com/v1/score/tantra-authority").then(function(r){return r.json();}).then(function(d){
-    if(!d || d.score==null) throw new Error("no score");
-    document.getElementById("live-status").textContent = "verified " + new Date(d.verifiedAt).toUTCString().replace("GMT","UTC");
-    document.getElementById("live-score").textContent = d.score;
-    var t=d.tier||""; document.getElementById("live-tier").textContent = t;
-    document.getElementById("live-name").textContent = d.name + "  ·  " + d.agent;
-    var s=d.signals||{};
-    document.getElementById("live-signals").innerHTML =
-      "on-chain USDC (Base): <b style='color:var(--ink)'>" + (s.onchainUsdcBalance!=null?s.onchainUsdcBalance.toFixed(2):"—") + "</b>  ·  " +
-      "signed offers: <b style='color:var(--ink)'>" + (s.signedOffers||0) + "</b>  ·  " +
-      "catalog live: <b style='color:var(--ink)'>" + (s.catalogLive?"yes":"no") + "</b>  ·  " +
-      "active " + (s.activeSinceDays||0) + "d";
+  var API="https://api.repforagents.com";
+  Promise.all([
+    fetch(API+"/v1").then(function(r){return r.ok?r.json():null;}).catch(function(){return null;}),
+    fetch(API+"/v1/agents").then(function(r){return r.ok?r.json():null;}).catch(function(){return null;}),
+    fetch(API+"/v1/score/tantra-authority").then(function(r){return r.json();}).catch(function(){return null;})
+  ]).then(function(res){
+    var svc=res[0], agents=res[1], score=res[2];
+    if(!svc){ document.getElementById("live-status").textContent="API warming up — refresh in a moment"; return; }
+    var n=(agents&&agents.agents&&agents.agents.length)||0;
+    document.getElementById("live-status").textContent = "API live · receipt-anchored · "+n+" agent"+(n===1?"":"s")+" registered";
+    if(score && score.score!=null){
+      document.getElementById("live-score").textContent = score.score;
+      document.getElementById("live-tier").textContent = score.tier||"";
+      document.getElementById("live-name").textContent = (score.name||score.agent);
+      document.getElementById("live-signals").innerHTML =
+        "verified settlements: <b style='color:var(--ink)'>"+(score.settled||0)+"</b>";
+    } else {
+      document.getElementById("live-score").textContent = "—";
+      document.getElementById("live-score").style.fontSize = "26px";
+      document.getElementById("live-tier").textContent = (score&&score.tier)||"Unrated";
+      document.getElementById("live-name").textContent = (score&&score.agent)||"did:web:tantra-authority.com";
+      document.getElementById("live-signals").innerHTML =
+        "Scores anchor to <b style='color:var(--ink)'>real on-chain settlements only</b>. "+
+        "<b style='color:var(--ink)'>"+((score&&score.settled)||0)+"</b> verified so far — nothing simulated. "+
+        "A score appears here the moment the first agent buys and the receipt is anchored.";
+    }
     document.getElementById("live-body").style.display="flex";
-  }).catch(function(){
-    document.getElementById("live-status").textContent = "API warming up — try a refresh";
   });
 })();
 </script>
